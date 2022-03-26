@@ -1,4 +1,3 @@
-import chat.endpoint
 import io.ktor.client.*
 import io.ktor.client.features.websocket.*
 import io.ktor.client.request.*
@@ -21,14 +20,16 @@ class WerwolfSession private constructor(private val socket: DefaultClientWebSoc
             val client = HttpClient {
                 install(WebSockets)
             }
+            println("1")
             val socket = client.webSocketSession {
                 this.url(
                     scheme = "ws",
                     host = origin.host,
-                    port = origin.port.toInt(),
                     path = "/api/werwolf/$lobby"
                 )
+                println("Connecting to: ${url.buildString()}")
             }
+            println("2")
             return WerwolfSession(socket, lobby)
         }
     }
