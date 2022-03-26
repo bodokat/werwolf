@@ -23,7 +23,7 @@ class WerwolfSession private constructor(private val socket: DefaultClientWebSoc
             println("1")
             val socket = client.webSocketSession {
                 this.url(
-                    scheme = "ws",
+                    scheme = "wss",
                     host = origin.host,
                     path = "/api/werwolf/$lobby"
                 )
