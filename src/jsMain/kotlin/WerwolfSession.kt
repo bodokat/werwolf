@@ -16,22 +16,24 @@ val origin = window.location
 
 class WerwolfSession private constructor(private val socket: DefaultClientWebSocketSession, val lobby: String) {
     companion object {
-        suspend fun connect(lobby: String): WerwolfSession {
+        suspend fun connect(lobby: String, name: String): WerwolfSession {
             val client = HttpClient {
                 install(WebSockets)
             }
-            println("1")
             val socket = client.webSocketSession {
                 this.url(
                     scheme = "wss",
                     host = origin.host,
-                    path = "/api/werwolf/$lobby"
+                    path = "/api/werwolf/$lobby?name=$name"
                 )
                 println("Connecting to: ${url.buildString()}")
             }
-            println("2")
             return WerwolfSession(socket, lobby)
         }
+    }
+
+    suspend fun disconnect() {
+        socket.close()
     }
 
     val messages = socket.incoming.consumeAsFlow()

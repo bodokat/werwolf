@@ -41,8 +41,8 @@ private val Messages = FC<Props> {
         scope.launch {
             var actualMessages = emptyList<ToClientMessage>()
             session.messages.collect {
-                if(it is ToClientMessage.Started) started = true
-                if(it is ToClientMessage.Ended) started = false
+                if (it is ToClientMessage.Started) started = true
+                if (it is ToClientMessage.Ended) started = false
                 actualMessages = actualMessages + it
                 setMessages(actualMessages)
             }
@@ -51,7 +51,7 @@ private val Messages = FC<Props> {
 
     Button {
         +"Start"
-        if(started) disabled = true
+        if (started) disabled = true
         onClick = {
             scope.launch {
                 session.send(ToServerMessage.AdminMessage.Start)
@@ -76,32 +76,52 @@ external interface LobbyInputProps : Props {
 }
 
 private val LobbyInput = FC<LobbyInputProps> { props ->
-    var inputText by useState("")
+    var nameText by useState("")
+    var lobbyText by useState("")
     val (state, setState) = props.state
+
+    +"Name: "
+    TextField {
+        value = nameText
+        onChange = {
+            nameText = (it.target as HTMLInputElement).value
+        }
+    }
+
 
     Box {
         sx {
             display = Display.flex
         }
         TextField {
-            value = inputText
+            if (state != ConnectState.Disconnected) disabled = true
+            value = lobbyText
             onChange = {
-                inputText = (it.target as HTMLInputElement).value
+                lobbyText = (it.target as HTMLInputElement).value
             }
         }
         Button {
+            if (state == ConnectState.Connecting) disabled = true
             variant = ButtonVariant.contained
-            +"Connect"
+
+            +if (state is ConnectState.Connected) "Disonnect" else "Connect"
             onClick = {
-                setState(ConnectState.Connecting)
-                scope.launch {
-                    val session = WerwolfSession.connect(inputText)
-                    setState(ConnectState.Connected(session))
+                if (state == ConnectState.Disconnected) {
+                    setState(ConnectState.Connecting)
+                    scope.launch {
+                        val session = WerwolfSession.connect(lobbyText, name = nameText)
+                        setState(ConnectState.Connected(session))
+                    }
+                } else {
+                    if (state is ConnectState.Connected) scope.launch { state.session.disconnect() }
+                    setState(ConnectState.Disconnected)
+
                 }
             }
         }
     }
 }
+
 
 sealed class ConnectState {
     object Disconnected : ConnectState()
