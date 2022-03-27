@@ -2,7 +2,6 @@ package roles
 
 import GameData
 import Player
-import User
 
 object Dieb: Role {
     override val team = Team.Dorf
@@ -17,6 +16,7 @@ class DiebBehavior: RoleBehavior {
     }
 
     private var toSwap: Player? = null
+    private var swappedRole: Role? = null
     override suspend fun mainAsync(me: Player, data: GameData) {
         val others = data.players.filter { it != me }
         toSwap = me.user.choice("Mit wem willst du tauschen?", others).let { others[it] }
@@ -26,5 +26,10 @@ class DiebBehavior: RoleBehavior {
         toSwap?.let { swap ->
             swap.role = me.role.also { me.role = swap.role }
         }
+        swappedRole = me.role
+    }
+
+    override suspend fun afterAsync(me: Player, data: GameData) {
+        me.user.send("Du hast $swappedRole gestohlen")
     }
 }
