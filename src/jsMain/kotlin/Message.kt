@@ -4,9 +4,11 @@ import lobby.ToServerMessage
 import mui.material.Button
 import mui.material.ButtonGroup
 import mui.material.ButtonGroupVariant
+import mui.material.ButtonVariant
 import react.FC
 import react.Props
 import react.useContext
+import react.useState
 
 external interface MessageProps : Props {
     var message: ToClientMessage
@@ -38,14 +40,17 @@ external interface ButtonMessageProps: Props {
 
 val ButtonMessage = FC<ButtonMessageProps> { props ->
     val session = useContext(sessionContext)
+    var chosen: Int? by useState()
 
     +props.message.text
+    if(chosen == null) {
     ButtonGroup {
         variant = ButtonGroupVariant.contained
         props.message.options.forEachIndexed { index, option ->
             Button {
                 +option
                 onClick = {
+                    chosen = index
                     scope.launch {
                         session.send(
                             ToServerMessage.Response(
@@ -55,6 +60,12 @@ val ButtonMessage = FC<ButtonMessageProps> { props ->
                     }
                 }
             }
+        }
+    } } else {
+        Button {
+            variant = ButtonVariant.contained
+            disabled = true
+            +props.message.options[chosen!!]
         }
     }
 }
