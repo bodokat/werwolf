@@ -2,7 +2,6 @@ package roles
 
 import GameData
 import Player
-import User
 
 object Doppel: Role {
     override val team = Team.Dorf

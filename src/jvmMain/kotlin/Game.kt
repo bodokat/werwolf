@@ -8,8 +8,8 @@ import roles.Team
 import roles.Werwolf
 
 suspend fun Lobby.startGame() = coroutineScope {
-    assert(users.size > 0)
-    assert(roles.size > users.size)
+    assert(users.isNotEmpty())
+    assert(roles.sum() > users.size)
 
     sendAll(ToClientMessage.Started)
 

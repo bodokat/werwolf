@@ -32,6 +32,7 @@ fun main() {
             method(HttpMethod.Post)
             method(HttpMethod.Delete)
             anyHost()
+
         }
         install(Compression) {
             gzip()
@@ -41,12 +42,12 @@ fun main() {
             static("/static") {
                 resources()
             }
-            get("/") {
-                call.respondHtml(HttpStatusCode.OK, HTML::index)
-            }
             route("/api") {
                 chatRoute()
                 werwolfRoute()
+            }
+            get("{...}") {
+                call.respondHtml(HttpStatusCode.OK, HTML::index)
             }
         }
     }.start(wait = true)

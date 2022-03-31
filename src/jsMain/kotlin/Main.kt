@@ -4,5 +4,5 @@ import react.dom.render
 
 fun main() {
     val root = document.getElementById("root") ?: error("No root element found")
-    render(Werwolf.create(),root)
+    render(App.create(),root)
 }

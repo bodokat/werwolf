@@ -2,7 +2,6 @@ package roles
 
 import GameData
 import Player
-import User
 
 object Unruhestifterin: Role {
     override val team = Team.Dorf

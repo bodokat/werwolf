@@ -25,35 +25,38 @@ sealed class ToServerMessage {
         class KickPlayer(val index: Int) : AdminMessage()
 
         @Serializable
-        class changeRoles(val newRoles: List<Int>): AdminMessage()
+        class ChangeRoles(val newRoles: List<Int>) : AdminMessage()
     }
 }
 
-@Suppress("unused")
 @Serializable
 sealed class ToClientMessage {
 
     @Serializable
-    class Initial(val settings: LobbySettings, val players: List<String>): ToClientMessage()
-    @Serializable
-    class Joined(val player: String): ToClientMessage()
+    class Initial(val settings: LobbySettings, val players: List<String>, val me: String) : ToClientMessage()
 
     @Serializable
-    class Left(val player: String): ToClientMessage()
+    class NewSettings(val settings: LobbySettings): ToClientMessage()
 
     @Serializable
-    object Started: ToClientMessage()
+    class Joined(val player: String) : ToClientMessage()
+
+    @Serializable
+    class Left(val player: String) : ToClientMessage()
+
+    @Serializable
+    object Started : ToClientMessage()
 
     /**
      * Message sent while inside a game
      */
-    sealed class IngameMessage: ToClientMessage()
+    sealed class IngameMessage : ToClientMessage()
 
     @Serializable
-    class Text(val text: String): IngameMessage()
+    class Text(val text: String) : IngameMessage()
 
     @Serializable
-    class Question(val id: Int, val text: String, val options: List<String>): IngameMessage()
+    class Question(val id: Int, val text: String, val options: List<String>) : IngameMessage()
 
     @Serializable
     object Ended : ToClientMessage()

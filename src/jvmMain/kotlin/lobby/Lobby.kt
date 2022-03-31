@@ -1,10 +1,16 @@
 package lobby
 
 import User
+import io.ktor.application.*
 import io.ktor.http.cio.websocket.*
+import io.ktor.response.*
 import io.ktor.routing.*
+import io.ktor.util.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
@@ -22,8 +28,9 @@ class Lobby {
 
 
     var running = AtomicBoolean(false)
+    var nameCounter = AtomicInteger(1)
 
-    fun canStart(): Boolean =
+    private fun canStart(): Boolean =
         users.size < roles.size
 
 
@@ -35,8 +42,6 @@ class Lobby {
         sendAll(ToClientMessage.Text(text))
     }
 
-
-
     suspend fun handleMessage(message: ToServerMessage, user: User) {
         if (message is ToServerMessage.AdminMessage)  {
             if (user != users.first()) {
@@ -45,7 +50,16 @@ class Lobby {
                 when (message) {
                     is ToServerMessage.AdminMessage.KickPlayer -> this.users = users.drop(message.index)
                     is ToServerMessage.AdminMessage.Start -> if (canStart()) startGame()
-                    is ToServerMessage.AdminMessage.changeRoles -> roles = message.newRoles
+                    is ToServerMessage.AdminMessage.ChangeRoles -> {
+                        roles = message.newRoles
+                        sendAll(ToClientMessage.NewSettings(
+                            LobbySettings(
+                                admin = users.first().name,
+                                roles = roles.map { if(it>=0) it else 0 },
+                                availableRoles = availableRoles.map { it.toString() }
+                            )
+                        ))
+                    }
                 }
             }
         } else when (message) {
@@ -59,9 +73,9 @@ fun Route.werwolfRoute() {
     val lastUserID = AtomicInteger(0)
 
     webSocket("/werwolf/{lobby}") {
-        val lobbyName = call.parameters["lobby"]
+        val lobbyName = (call.parameters as StringValues)["lobby"]
         val lobby = lobbies.computeIfAbsent(lobbyName) { Lobby() }
-        val userName = call.request.queryParameters["name"] ?: "user${lastUserID.getAndIncrement()}"
+        val userName = (call.request.queryParameters as StringValues)["name"] ?: "user${lastUserID.getAndIncrement()}"
         val user = User(userName, this)
         try {
             addUser(lobby, user, userName)
@@ -75,6 +89,19 @@ fun Route.werwolfRoute() {
             }
         }
     }
+    this.post("new") {
+        val charPool :List<Char> = ('A'..'Z') + ('a'..'z') + ('0'..'9')
+        var id = List(8) {
+            charPool.random()
+        }.joinToString("")
+        while (lobbies.containsKey(id)) {
+            id = List(8) {
+                charPool.random()
+            }.joinToString("")
+        }
+        lobbies[id] = Lobby()
+        call.respond(id)
+    }
 }
 
 private suspend fun DefaultWebSocketServerSession.addUser(
@@ -83,6 +110,7 @@ private suspend fun DefaultWebSocketServerSession.addUser(
     userName: String
 ) {
     lobby.users = lobby.users + user
+    val name = lobby.validate(userName)
     launch {
         lobby.sendAll(ToClientMessage.Joined(userName))
     }
@@ -93,8 +121,10 @@ private suspend fun DefaultWebSocketServerSession.addUser(
                 settings = LobbySettings(
                     availableRoles = lobby.availableRoles.map(Role::toString),
                     roles = lobby.roles,
-                    admin = lobby.users[0].name
-                )
+                    admin = lobby.users[0].name,
+
+                ),
+                me = name
             )
         )
     }
@@ -110,4 +140,9 @@ private suspend fun DefaultWebSocketServerSession.addUser(
         }
         .map { launch { lobby.handleMessage(it, user) } }
         .collect()
+}
+
+fun Lobby.validate(name: String): String {
+    return if(name.matches(Regex("\\w+"))) name
+    else "Uhrensohn ${nameCounter.getAndIncrement()}"
 }

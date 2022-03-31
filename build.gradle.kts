@@ -4,9 +4,13 @@ val kotlinVersion = "1.6.10"
 val serializationVersion = "1.3.2"
 val ktorVersion = "1.6.7"
 val logbackVersion = "1.2.10"
-val reactVersion = "17.0.2-pre.322-kotlin-1.6.10"
-val kotlinWrappersVersion = "5.5.2"
+//val kotlinWrappersVersion = "17.0.2-pre.322-kotlin-1.6.10"
+//val kotlinWrappersVersion = "5.5.2"
 val kmongoVersion = "4.5.0"
+val kotlinWrappersVersion = "0.0.1-pre.322-kotlin-1.6.10"
+
+fun kotlinw(target: String): String =
+    "org.jetbrains.kotlin-wrappers:kotlin-$target"
 
 plugins {
     kotlin("multiplatform") version "1.6.10"
@@ -56,15 +60,19 @@ kotlin {
 
         val jsMain by getting {
             dependencies {
+                implementation(project.dependencies.enforcedPlatform(kotlinw("wrappers-bom:$kotlinWrappersVersion")))
 
-                implementation("org.jetbrains.kotlin-wrappers:kotlin-mui:5.5.1-pre.322-kotlin-1.6.10")
+                implementation(kotlinw("mui"))
+                implementation(kotlinw("mui-icons"))
+                implementation(kotlinw("react"))
+                implementation(kotlinw("react-dom"))
+                implementation(kotlinw("react-redux"))
+                implementation(kotlinw("react-router-dom"))
 
                 implementation("io.ktor:ktor-client-js:$ktorVersion")
                 implementation("io.ktor:ktor-client-json:$ktorVersion")
                 implementation("io.ktor:ktor-client-serialization:$ktorVersion")
 
-                implementation("org.jetbrains.kotlin-wrappers:kotlin-react:$reactVersion")
-                implementation("org.jetbrains.kotlin-wrappers:kotlin-react-dom:$reactVersion")
 
                 implementation(npm("@emotion/react", "11.8.2"))
                 implementation(npm("@emotion/styled", "11.8.1"))
