@@ -143,6 +143,6 @@ private suspend fun DefaultWebSocketServerSession.addUser(
 }
 
 fun Lobby.validate(name: String): String {
-    return if(name.matches(Regex("\\w+"))) name
+    return if(name.matches(Regex("[A-Za-z\\d\\s]+")) && name.length <= 20 ) name
     else "Uhrensohn ${nameCounter.getAndIncrement()}"
 }
