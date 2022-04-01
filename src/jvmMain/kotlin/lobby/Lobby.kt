@@ -76,7 +76,8 @@ fun Route.werwolfRoute() {
         val lobbyName = (call.parameters as StringValues)["lobby"]
         val lobby = lobbies.computeIfAbsent(lobbyName) { Lobby() }
         val userName = (call.request.queryParameters as StringValues)["name"] ?: "user${lastUserID.getAndIncrement()}"
-        val user = User(userName, this)
+        val name = validate(userName,lastUserID)
+        val user = User(name, this)
         try {
             addUser(lobby, user, userName)
         } catch (e: Exception) {
@@ -110,7 +111,6 @@ private suspend fun DefaultWebSocketServerSession.addUser(
     userName: String
 ) {
     lobby.users = lobby.users + user
-    val name = lobby.validate(userName)
     launch {
         lobby.sendAll(ToClientMessage.Joined(userName))
     }
@@ -124,7 +124,7 @@ private suspend fun DefaultWebSocketServerSession.addUser(
                     admin = lobby.users[0].name,
 
                 ),
-                me = name
+                me = user.name
             )
         )
     }
@@ -142,7 +142,7 @@ private suspend fun DefaultWebSocketServerSession.addUser(
         .collect()
 }
 
-fun Lobby.validate(name: String): String {
-    return if(name.matches(Regex("[A-Za-z\\d\\s]+")) && name.length <= 20 ) name
-    else "Uhrensohn ${nameCounter.getAndIncrement()}"
+fun validate(name: String, counter: AtomicInteger): String {
+    return if(name.matches(Regex("[A-Za-z0-9\\s]+")) && name.length <= 20 ) name
+    else "Uhrensohn ${counter.getAndIncrement()}"
 }
