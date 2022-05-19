@@ -5,8 +5,7 @@ import io.ktor.client.features.websocket.*
 import io.ktor.client.request.*
 import io.ktor.http.cio.websocket.*
 import kotlinx.browser.window
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
@@ -25,7 +24,7 @@ class WerwolfSession private constructor(
     initialState: SessionState
 ) {
     companion object {
-        suspend fun join(lobby: String, name: String): WerwolfSession {
+        suspend fun join(lobby: String, name: String): WerwolfSession = coroutineScope {
             val client = HttpClient {
                 install(WebSockets)
             }
@@ -49,11 +48,11 @@ class WerwolfSession private constructor(
                     }
                 }
             val initialState = messages.filterIsInstance<ToClientMessage.Initial>().first().toState()
-            return WerwolfSession(socket, lobby, messages, initialState)
+            WerwolfSession(socket, lobby, messages, initialState)
         }
     }
 
-    private val scope = MainScope()
+    private val scope =  CoroutineScope(Dispatchers.Default)
 
     val state: StateFlow<SessionState> = messages.scan(initialState) { state: SessionState, message: ToClientMessage ->
         val newState = when (message) {
