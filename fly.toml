@@ -1,24 +1,20 @@
-# fly.toml file generated for werwolf on 2022-05-18T10:10:36+02:00
+# fly.toml file generated for werwolf on 2022-05-19T19:45:24+02:00
 
 app = "werwolf"
 
 kill_signal = "SIGINT"
 kill_timeout = 5
+processes = []
 
 [build]
-  builder = "paketobuildpacks/builder:tiny"
+  builder = "cloudfoundry/cnb:tiny"
+  buildpacks = ["gcr.io/paketo-buildpacks/gradle"]
 
 [env]
 
 [experimental]
   allowed_public_ports = []
   auto_rollback = true
-  cmd = []
-  entrypoint = []
-  exec = []
-
-[processes]
-  app = "./build/install/werwolf/bin/werwolf"
 
 [[services]]
   http_checks = []
