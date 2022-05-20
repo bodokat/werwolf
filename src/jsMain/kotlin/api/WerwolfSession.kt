@@ -3,6 +3,7 @@ package api
 import io.ktor.client.*
 import io.ktor.client.features.websocket.*
 import io.ktor.client.request.*
+import io.ktor.http.*
 import io.ktor.http.cio.websocket.*
 import kotlinx.browser.window
 import kotlinx.coroutines.*
@@ -15,7 +16,6 @@ import lobby.LobbySettings
 import lobby.ToClientMessage
 import lobby.ToServerMessage
 
-val origin = window.location
 
 class WerwolfSession private constructor(
     private val socket: DefaultClientWebSocketSession,
@@ -29,15 +29,17 @@ class WerwolfSession private constructor(
                 install(WebSockets)
             }
             val socket = client.webSocketSession {
-                this.url(
+                url {
                     // use non-ssl (ws) when connecting to localhost
-                    scheme = if (origin.hostname.let { it == "0.0.0.0" || it == "localhost" }) "ws" else "wss",
-                    host = origin.host,
-                    path = "/api/werwolf/$lobby?name=$name"
-                )
+                    protocol = if(window.location.hostname in listOf("0.0.0.0", "localhost")) URLProtocol.WS else URLProtocol.WSS
+                    host = window.location.host
+                    encodedPath = "/api/werwolf/$lobby"
+                    parameters["name"] = name
+                }
                 println("Connecting to: ${url.buildString()}")
             }
-            val messages = socket.incoming.receiveAsFlow() //TODO
+
+            val messages = socket.incoming.receiveAsFlow()
                 .mapNotNull { it as? Frame.Text }
                 .mapNotNull {
                     try {
@@ -93,8 +95,8 @@ suspend fun newLobby(): String {
     val id = client.post<String> {
         this.url(
             // use non-ssl (http) when connecting to localhost
-            scheme = if (origin.hostname.let { it == "0.0.0.0" || it == "localhost" }) "http" else "https",
-            host = origin.host,
+            scheme = if (window.location.hostname.let { it == "0.0.0.0" || it == "localhost" }) "http" else "https",
+            host = window.location.host,
             path = "/api/new"
         )
     }
