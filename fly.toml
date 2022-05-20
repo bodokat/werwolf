@@ -8,9 +8,10 @@ processes = []
 
 [build]
   builder = "cloudfoundry/cnb:base"
-  buildpacks = ["gcr.io/paketo-buildpacks/gradle"]
+#  buildpacks = ["paketo-buildpacks/graalvm","paketo-buildpacks/java"]
 
 [env]
+  JAVA_TOOL_OPTIONS = "-Xss256K -XX:ReservedCodeCacheSize=32M -XX:MaxMetaspaceSize=32M -Xmx50M"
 
 [experimental]
   allowed_public_ports = []

@@ -6,6 +6,7 @@ import mui.material.Box
 import mui.material.Card
 import mui.material.Chip
 import mui.material.Typography
+import mui.material.styles.TypographyVariant
 import mui.system.sx
 import react.FC
 import react.Props
@@ -25,7 +26,7 @@ val Players = FC<Props> {
                     margin = 10.px
                 }
                 Typography {
-                    variant = "h6"
+                    variant = TypographyVariant.h6
                     +it
                 }
                 if(it == state.me) Chip {

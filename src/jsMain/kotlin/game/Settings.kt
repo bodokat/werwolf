@@ -32,7 +32,7 @@ val Settings = FC<Props> {
                     if(isAdmin){
                         IconButton {
                             attrs {
-                                edge = IconButtonEdge.end
+                                edge = "end".unsafeCast<IconButtonEdge>()
                                 onClick = {
                                     scope.launch {
                                         session.send(ToServerMessage.AdminMessage.ChangeRoles(
@@ -46,14 +46,14 @@ val Settings = FC<Props> {
                     }
                     IconButton {
                         attrs {
-                            edge = IconButtonEdge.end
+                            edge = "end".unsafeCast<IconButtonEdge>()
                         }
                         +(state.settings.roles[index].toString())
                     }
                     if(isAdmin){
                         IconButton {
                             attrs {
-                                edge = IconButtonEdge.end
+                                edge = "end".unsafeCast<IconButtonEdge>()
                                 onClick = {
                                     scope.launch {
                                         session.send(ToServerMessage.AdminMessage.ChangeRoles(

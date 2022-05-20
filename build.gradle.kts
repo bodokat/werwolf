@@ -4,10 +4,7 @@ val kotlinVersion = "1.6"
 val serializationVersion = "1.3.2"
 val ktorVersion = "1.6.7"
 val logbackVersion = "1.2.10"
-//val kotlinWrappersVersion = "17.0.2-pre.322-kotlin-1.6.10"
-//val kotlinWrappersVersion = "5.5.2"
-val kmongoVersion = "4.5.0"
-val kotlinWrappersVersion = "0.0.1-pre.322-kotlin-1.6.10"
+val kotlinWrappersVersion = "1.0.0-pre.338"
 
 fun kotlinw(target: String): String =
     "org.jetbrains.kotlin-wrappers:kotlin-$target"
@@ -83,22 +80,50 @@ kotlin {
 }
 
 application {
-    mainClass.set("ServerKt")
+    mainClass.set("MainKt")
+}
+
+tasks {
+    val fatJar = register<Jar>("fatJar") {
+        val taskName = if (project.hasProperty("isProduction")
+            || project.gradle.startParameter.taskNames.contains("installDist")
+        ) {
+            "jsBrowserProductionWebpack"
+        } else {
+            "jsBrowserDevelopmentWebpack"
+        }
+        val webpackTask = getByName<KotlinWebpack>(taskName)
+        dependsOn(taskName) // make sure JS gets compiled first
+        from(File(webpackTask.destinationDirectory, webpackTask.outputFileName)) // bring output file along into the JAR
+
+        dependsOn.addAll(listOf("compileJava", "compileKotlinJvm","compileKotlinJs","jsBrowserProductionWebpack", "processResources")) // We need this for Gradle optimization to work
+        archiveClassifier.set("standalone") // Naming the jar
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        manifest { attributes(mapOf("Main-Class" to application.mainClass)) } // Provided we set it up in the application plugin configuration
+        val sourcesMain = sourceSets.main.get()
+        val contents = configurations.runtimeClasspath.get()
+            .map { if (it.isDirectory) it else zipTree(it) } +
+                sourcesMain.output
+        from(contents)
+    }
+    assemble {
+        dependsOn(fatJar) // Trigger fat jar creation during build
+    }
 }
 
 // include JS artifacts in any JAR we generate
-tasks.getByName<Jar>("jvmJar") {
-    val taskName = if (project.hasProperty("isProduction")
-        || project.gradle.startParameter.taskNames.contains("installDist")
-    ) {
-        "jsBrowserProductionWebpack"
-    } else {
-        "jsBrowserDevelopmentWebpack"
-    }
-    val webpackTask = tasks.getByName<KotlinWebpack>(taskName)
-    dependsOn(webpackTask) // make sure JS gets compiled first
-    from(File(webpackTask.destinationDirectory, webpackTask.outputFileName)) // bring output file along into the JAR
-}
+//tasks.getByName<Jar>("jvmJar") {
+//    val taskName = if (project.hasProperty("isProduction")
+//        || project.gradle.startParameter.taskNames.contains("installDist")
+//    ) {
+//        "jsBrowserProductionWebpack"
+//    } else {
+//        "jsBrowserDevelopmentWebpack"
+//    }
+//    val webpackTask = tasks.getByName<KotlinWebpack>(taskName)
+//    dependsOn(webpackTask) // make sure JS gets compiled first
+//    from(File(webpackTask.destinationDirectory, webpackTask.outputFileName)) // bring output file along into the JAR
+//}
 
 tasks {
     withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {

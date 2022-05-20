@@ -20,7 +20,7 @@ val origin = window.location
 class WerwolfSession private constructor(
     private val socket: DefaultClientWebSocketSession,
     val lobby: String,
-    val messages: Flow<ToClientMessage>,
+    messages: Flow<ToClientMessage>,
     initialState: SessionState
 ) {
     companion object {
@@ -52,7 +52,7 @@ class WerwolfSession private constructor(
         }
     }
 
-    private val scope =  CoroutineScope(Dispatchers.Default)
+    private val scope = MainScope()
 
     val state: StateFlow<SessionState> = messages.scan(initialState) { state: SessionState, message: ToClientMessage ->
         val newState = when (message) {

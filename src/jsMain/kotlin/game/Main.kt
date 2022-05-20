@@ -8,6 +8,7 @@ import mui.icons.material.ContentCopy
 import mui.material.Box
 import mui.material.IconButton
 import mui.material.Typography
+import mui.material.styles.TypographyVariant
 import mui.system.sx
 import react.FC
 import react.Props
@@ -28,7 +29,7 @@ val MainGame = FC<MainGameProps> { props ->
                     flexDirection = FlexDirection.row
                 }
                 Typography {
-                    variant = "h6"
+                    variant = TypographyVariant.h6
                     +"Verbunden mit ${window.location.href}"
                 }
                 IconButton {
