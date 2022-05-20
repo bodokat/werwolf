@@ -85,6 +85,7 @@ application {
 
 tasks {
     val fatJar = register<Jar>("fatJar") {
+        // Include js artifacts
         val taskName = if (project.hasProperty("isProduction")
             || project.gradle.startParameter.taskNames.contains("installDist")
         ) {
@@ -96,6 +97,7 @@ tasks {
         dependsOn(taskName) // make sure JS gets compiled first
         from(File(webpackTask.destinationDirectory, webpackTask.outputFileName)) // bring output file along into the JAR
 
+        // Create "fat jar"
         dependsOn.addAll(listOf("compileJava", "compileKotlinJvm","compileKotlinJs","jsBrowserProductionWebpack", "processResources")) // We need this for Gradle optimization to work
         archiveClassifier.set("standalone") // Naming the jar
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
@@ -111,19 +113,6 @@ tasks {
     }
 }
 
-// include JS artifacts in any JAR we generate
-//tasks.getByName<Jar>("jvmJar") {
-//    val taskName = if (project.hasProperty("isProduction")
-//        || project.gradle.startParameter.taskNames.contains("installDist")
-//    ) {
-//        "jsBrowserProductionWebpack"
-//    } else {
-//        "jsBrowserDevelopmentWebpack"
-//    }
-//    val webpackTask = tasks.getByName<KotlinWebpack>(taskName)
-//    dependsOn(webpackTask) // make sure JS gets compiled first
-//    from(File(webpackTask.destinationDirectory, webpackTask.outputFileName)) // bring output file along into the JAR
-//}
 
 tasks {
     withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
@@ -133,16 +122,6 @@ tasks {
     }
 }
 
-distributions {
-    main {
-        contents {
-            from("$buildDir/libs") {
-                rename("${rootProject.name}-jvm", rootProject.name)
-                into("lib")
-            }
-        }
-    }
-}
 
 // Alias "installDist" as "stage" (for cloud providers)
 tasks.create("stage") {
