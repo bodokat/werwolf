@@ -1,25 +1,17 @@
-import io.ktor.application.*
-import io.ktor.features.*
-import io.ktor.html.*
+
 import io.ktor.http.*
-import io.ktor.http.content.*
-import io.ktor.routing.*
-import io.ktor.serialization.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
 import io.ktor.server.engine.*
+import io.ktor.server.html.*
+import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
-import io.ktor.websocket.*
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.routing.*
+import io.ktor.server.websocket.*
 import kotlinx.html.*
 import lobby.werwolfRoute
-
-fun HTML.index() {
-    head {
-        title("Werwolf")
-    }
-    body {
-        div { id = "root" }
-        script(src = "/static/werwolf.js") {}
-    }
-}
 
 fun main() {
     val port = System.getenv("PORT")?.toInt() ?: 8080
@@ -28,14 +20,10 @@ fun main() {
             json()
         }
         install(CORS) {
-            method(HttpMethod.Get)
-            method(HttpMethod.Post)
-            method(HttpMethod.Delete)
+            allowMethod(HttpMethod.Get)
+            allowMethod(HttpMethod.Post)
+            allowMethod(HttpMethod.Delete)
             anyHost()
-
-        }
-        install(Compression) {
-            gzip()
         }
         install(WebSockets)
         routing {
@@ -51,4 +39,14 @@ fun main() {
             }
         }
     }.start(wait = true)
+}
+
+fun HTML.index() {
+    head {
+        title("Werwolf")
+    }
+    body {
+        div { id = "root" }
+        script(src = "/static/werwolf.js") {}
+    }
 }

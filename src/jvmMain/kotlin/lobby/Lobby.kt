@@ -1,11 +1,11 @@
 package lobby
 
 import User
-import io.ktor.application.*
-import io.ktor.http.cio.websocket.*
-import io.ktor.response.*
-import io.ktor.routing.*
-import io.ktor.util.*
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.server.websocket.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
@@ -23,8 +23,9 @@ import java.util.concurrent.atomic.AtomicInteger
 
 class Lobby {
     var users: List<User> = Collections.synchronizedList(mutableListOf())
-    val availableRoles: List<Role> = listOf(Dorfbewohner,Werwolf,Dieb,Doppel,Freimaurer,Schlaflose,Seherin,Unruhestifterin)
-    var roles: List<Int> = Collections.synchronizedList(listOf(1,2,1,0,2,1,1,1))
+    val availableRoles: List<Role> =
+        listOf(Dorfbewohner, Werwolf, Dieb, Doppel, Freimaurer, Schlaflose, Seherin, Unruhestifterin)
+    var roles: List<Int> = Collections.synchronizedList(listOf(1, 2, 1, 0, 2, 1, 1, 1))
 
 
     var running = AtomicBoolean(false)
@@ -43,7 +44,7 @@ class Lobby {
     }
 
     suspend fun handleMessage(message: ToServerMessage, user: User) {
-        if (message is ToServerMessage.AdminMessage)  {
+        if (message is ToServerMessage.AdminMessage) {
             if (user != users.first()) {
                 return
             } else {
@@ -55,7 +56,7 @@ class Lobby {
                         sendAll(ToClientMessage.NewSettings(
                             LobbySettings(
                                 admin = users.first().name,
-                                roles = roles.map { if(it>=0) it else 0 },
+                                roles = roles.map { if (it >= 0) it else 0 },
                                 availableRoles = availableRoles.map { it.toString() }
                             )
                         ))
@@ -63,35 +64,43 @@ class Lobby {
                 }
             }
         } else when (message) {
-            is ToServerMessage.Response -> user.response(message.id,message.choice)
+            is ToServerMessage.Response -> user.response(message.id, message.choice)
+            else -> {}
         }
     }
 }
 
 fun Route.werwolfRoute() {
     val lobbies: MutableMap<String?, Lobby> = Collections.synchronizedMap(HashMap())
-    val lastUserID = AtomicInteger(0)
 
     webSocket("/werwolf/{lobby}") {
-        val lobbyName = (call.parameters as StringValues)["lobby"]
+        val lobbyName = call.parameters["lobby"]
         val lobby = lobbies.computeIfAbsent(lobbyName) { Lobby() }
-        val userName = (call.request.queryParameters as StringValues)["name"] ?: "user${lastUserID.getAndIncrement()}"
-        val name = validate(userName,lastUserID)
+        val userName = call.request.queryParameters["name"] ?: return@webSocket call.respondText(
+            "no name provided",
+            status = HttpStatusCode.BadRequest
+        )
+
+        val name = lobby.validate(userName)
         val user = User(name, this)
+
         try {
-            addUser(lobby, user, userName)
+            addUser(lobby, user)
         } catch (e: Exception) {
             println("Exception: $e (${e.message})")
         } finally {
             println("removing $user!")
             lobby.users -= user
             if (lobby.users.isEmpty()) {
+                println("Removing lobby")
                 lobbies.remove(lobbyName)
             }
         }
     }
-    this.post("new") {
-        val charPool :List<Char> = ('A'..'Z') + ('a'..'z') + ('0'..'9')
+
+
+    post("new") {
+        val charPool: List<Char> = ('A'..'Z') + ('a'..'z') + ('0'..'9')
         var id = List(8) {
             charPool.random()
         }.joinToString("")
@@ -108,28 +117,24 @@ fun Route.werwolfRoute() {
 private suspend fun DefaultWebSocketServerSession.addUser(
     lobby: Lobby,
     user: User,
-    userName: String
 ) {
     lobby.users = lobby.users + user
     launch {
-        lobby.sendAll(ToClientMessage.Joined(userName))
+        lobby.sendAll(ToClientMessage.Joined(user.name))
     }
-    launch {
-        user.send(
-            ToClientMessage.Initial(
-                players = lobby.users.map { it.toString() },
-                settings = LobbySettings(
-                    availableRoles = lobby.availableRoles.map(Role::toString),
-                    roles = lobby.roles,
-                    admin = lobby.users[0].name,
-
-                ),
-                me = user.name
-            )
+    user.send(
+        ToClientMessage.Initial(
+            players = lobby.users.map { it.toString() },
+            settings = LobbySettings(
+                availableRoles = lobby.availableRoles.map(Role::toString),
+                roles = lobby.roles,
+                admin = lobby.users[0].name,
+            ),
+            me = user.name
         )
-    }
+    )
     incoming.receiveAsFlow()
-        .mapNotNull { it as Frame.Text }
+        .mapNotNull { it as? Frame.Text }
         .mapNotNull {
             try {
                 Json.decodeFromString<ToServerMessage>(it.readText())
@@ -142,7 +147,7 @@ private suspend fun DefaultWebSocketServerSession.addUser(
         .collect()
 }
 
-fun validate(name: String, counter: AtomicInteger): String {
-    return if(name.matches(Regex("[A-Za-z0-9\\s]+")) && name.length <= 20 ) name
-    else "Uhrensohn ${counter.getAndIncrement()}"
+fun Lobby.validate(name: String): String {
+    return if (name.matches(Regex("[A-Za-z\\d\\s]+")) && name.length <= 20 && users.none { it.name == name }) name
+    else validate("Uhrensohn ${nameCounter.getAndIncrement()}")
 }

@@ -1,11 +1,12 @@
 package game
 
 import api.WerwolfSession
-import csstype.Display
+import csstype.*
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import mui.material.Box
 import mui.material.Button
+import mui.material.ButtonVariant
 import mui.material.TextField
 import mui.system.sx
 import org.w3c.dom.HTMLInputElement
@@ -49,22 +50,32 @@ external interface ChooseNameProps: Props {
 
 val ChooseName = FC<ChooseNameProps> { props ->
     val (name, setName) = useState("")
-
     Box {
         sx {
-            display = Display.flex
+            display = Display.grid
+            gridTemplateRows = array(1.fr, 1.fr)
+            alignItems = AlignItems.center
+            paddingTop = 7.rem
         }
-        TextField {
-            value = name
-            label = ReactNode("Enter Name")
-            onChange = {
-                setName((it.target as HTMLInputElement).value)
+        Box {
+            sx {
+                marginLeft = Auto.auto
+                marginRight = Auto.auto
+                display = Display.flex
             }
+            TextField {
+                value = name
+                label = ReactNode("Enter Name")
+                onChange = {
+                    setName((it.target as HTMLInputElement).value)
+                }
 
-        }
-        Button {
-            onClick = {props.onSubmit(name)}
-            +"Join"
+            }
+            Button {
+                onClick = { props.onSubmit(name) }
+                variant = ButtonVariant.contained
+                +"Join"
+            }
         }
     }
 }

@@ -1,12 +1,16 @@
-package api
+kotlinx.coroutines.channels.ReceiveChannel'. kotlinx.coroutines.channels.ReceiveChannel'. package api
 
 import io.ktor.client.*
-import io.ktor.client.features.websocket.*
+import io.ktor.client.call.*
+import io.ktor.client.engine.js.*
+import io.ktor.client.plugins.websocket.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import io.ktor.http.cio.websocket.*
+import io.ktor.websocket.*
 import kotlinx.browser.window
-import kotlinx.coroutines.*
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
@@ -25,7 +29,7 @@ class WerwolfSession private constructor(
 ) {
     companion object {
         suspend fun join(lobby: String, name: String): WerwolfSession = coroutineScope {
-            val client = HttpClient {
+            val client = HttpClient(Js) {
                 install(WebSockets)
             }
             val socket = client.webSocketSession {
@@ -91,8 +95,8 @@ class WerwolfSession private constructor(
 }
 
 suspend fun newLobby(): String {
-    val client = HttpClient()
-    val id = client.post<String> {
+    val client = HttpClient(Js)
+    val response = client.post {
         this.url(
             // use non-ssl (http) when connecting to localhost
             scheme = if (window.location.hostname.let { it == "0.0.0.0" || it == "localhost" }) "http" else "https",
@@ -100,6 +104,7 @@ suspend fun newLobby(): String {
             path = "/api/new"
         )
     }
+    val id = response.body<String>()
     println("Created lobby with id $id")
     return id
 }

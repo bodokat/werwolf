@@ -1,3 +1,4 @@
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import lobby.Lobby
@@ -15,6 +16,8 @@ suspend fun Lobby.startGame() = coroutineScope {
 
     val gameData = setup()
 
+    // Action Phase
+
     gameData.players.map { player -> async { player.roleBehavior.beforeAsync(player, gameData) } }.map { it.await() }
     gameData.players.forEach { player -> player.roleBehavior.beforeSync(player, gameData) }
 
@@ -24,19 +27,8 @@ suspend fun Lobby.startGame() = coroutineScope {
     gameData.players.map { player -> async { player.roleBehavior.afterAsync(player, gameData) } }.map { it.await() }
     gameData.players.forEach { player -> player.roleBehavior.afterSync(player, gameData) }
 
-
-    val playerVotes = gameData.players.map { player -> async { player.user.choice("Die Abstimmung hat begonnen! Welchen Spieler wählst du?",gameData.players) } }.map { it.await() }
-    val totalVotes = playerVotes.fold(MutableList(playerVotes.size) { 0 }) { acc, vote -> acc.apply { vote.let { this[vote]++ } } }
-
-    sendAll("Stimmen:\n")
-    sendAll(gameData.players.mapIndexed { index, player -> "$player: ${totalVotes[index]}" }.joinToString("\n"))
-
-    val maxVotes = totalVotes.maxOrNull()!!
-    val deadPlayers = if (maxVotes <= 1) {
-        emptyList()
-    } else {
-        gameData.players.filterIndexed { index, _ -> totalVotes[index] == maxVotes }
-    }
+    // Voting Phase
+    val (deadPlayers, playerVotes) = vote(gameData)
 
     sendAll("Diese Spieler sind gestorben: ${deadPlayers.joinToString()}")
 
@@ -57,7 +49,33 @@ suspend fun Lobby.startGame() = coroutineScope {
 
     sendAll(ToClientMessage.Ended)
 
+    println("Game ended")
     running.set(false)
+}
+
+context(CoroutineScope)
+private suspend fun Lobby.vote(
+    gameData: GameData,
+): Pair<List<Player>, List<Int>> {
+    val skip = object {
+        override fun toString() = "skip"
+    }
+    val voteChoices = gameData.players + skip
+    val playerVotes = gameData.players.map { (user, _, _) ->
+        async {
+            user.choice(
+                "Die Abstimmung hat begonnen! Welchen Spieler wählst du?",
+                voteChoices
+            )
+        }
+    }.map { it.await() }
+    val totalVotes = playerVotes.fold(MutableList(voteChoices.size) { 0 }) { acc, vote -> acc.apply { this[vote]++ } }
+
+    sendAll("Stimmen:\n")
+    sendAll(voteChoices.mapIndexed { index, player -> "$player: ${voteChoices[index]}" }.joinToString("\n"))
+
+    val maxVotes = totalVotes.maxOrNull()!!
+    return Pair(gameData.players.filterIndexed { index, _ -> totalVotes[index] == maxVotes },playerVotes)
 }
 
 fun Lobby.setup(): GameData {

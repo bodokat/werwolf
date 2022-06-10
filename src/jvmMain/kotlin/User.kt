@@ -1,4 +1,4 @@
-import io.ktor.http.cio.websocket.*
+import io.ktor.websocket.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
